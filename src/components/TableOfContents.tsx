@@ -97,7 +97,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ items }) => {
                                         {/* Title */}
                                         <div className="flex-1 min-w-0">
                                             {date && (
-                                                <p className="text-white/35 text-[9px] tracking-wider mb-0.5">
+                                                <p className="text-white/55 text-[11px] tracking-widest font-light mb-0.5">
                                                     {date}
                                                 </p>
                                             )}
