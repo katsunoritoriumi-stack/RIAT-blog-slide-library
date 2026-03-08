@@ -1,5 +1,6 @@
 import StarBackground from "@/components/StarBackground";
 import ArchiveCard from "@/components/ArchiveCard";
+import ArchiveGrid from "@/components/ArchiveGrid";
 import archiveData from "@/data/archive.json";
 
 export default function Home() {
@@ -19,8 +20,13 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Constellation Layer */}
-      <div className="absolute inset-0 w-full h-full">
+      {/* Mobile: Grid Layout */}
+      <div className="md:hidden absolute inset-0 w-full overflow-y-auto pt-36 pb-16 px-6">
+        <ArchiveGrid items={archiveData} />
+      </div>
+
+      {/* Desktop: Constellation Layout */}
+      <div className="hidden md:block absolute inset-0 w-full h-full">
         {archiveData.map((item, index) => (
           <ArchiveCard
             key={item.id}
@@ -36,7 +42,7 @@ export default function Home() {
       </div>
 
       {/* Footer / Instructions */}
-      <footer className="absolute bottom-8 left-8 z-10">
+      <footer className="absolute bottom-8 left-8 z-10 hidden md:block">
         <div className="text-white/20 text-[10px] tracking-widest font-light">
           SCROLL TO EXPLORE<br />
           CLICK TO OPEN ARCHIVE
