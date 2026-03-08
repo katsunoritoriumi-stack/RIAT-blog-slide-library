@@ -1,5 +1,6 @@
 import StarBackground from "@/components/StarBackground";
 import ArchiveGrid from "@/components/ArchiveGrid";
+import TableOfContents from "@/components/TableOfContents";
 import archiveData from "@/data/archive.json";
 
 export default function Home() {
@@ -33,6 +34,9 @@ export default function Home() {
           </div>
         </footer>
       </div>
+
+      {/* Table of Contents */}
+      <TableOfContents items={archiveData} />
     </main>
   );
 }
