@@ -22,16 +22,13 @@ interface PDFViewerProps {
 const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
-    const [scale, setScale] = useState(1.0);
-    const [containerWidth, setContainerWidth] = useState(0);
+    const [pageWidth, setPageWidth] = useState(0);
 
     useEffect(() => {
         const updateWidth = () => {
-            const width = window.innerWidth;
-            if (width < 640) setScale(0.6);
-            else if (width < 1024) setScale(0.8);
-            else setScale(1.0);
-            setContainerWidth(width);
+            // 画面幅の90%を上限850pxでPDFの表示幅に設定
+            const vw = window.innerWidth;
+            setPageWidth(Math.min(vw * 0.9, 850));
         };
 
         updateWidth();
@@ -136,7 +133,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
                             >
                                 <Page
                                     pageNumber={pageNumber}
-                                    scale={scale}
+                                    width={pageWidth || undefined}
                                     renderAnnotationLayer={true}
                                     renderTextLayer={true}
                                 />
