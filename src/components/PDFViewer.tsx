@@ -23,6 +23,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [pageWidth, setPageWidth] = useState(0);
+    const touchStartX = React.useRef<number | null>(null);
+    const touchStartY = React.useRef<number | null>(null);
 
     useEffect(() => {
         const updateWidth = () => {
@@ -64,6 +66,25 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [pageNumber, numPages, onClose]);
 
+    // Swipe navigation
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartX.current === null || touchStartY.current === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX.current;
+        const dy = e.changedTouches[0].clientY - touchStartY.current;
+        // 横スワイプが縦より大きく、かつ50px以上の移動のみ反応
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+            if (dx < 0) nextPage();  // 左スワイプ → 次ページ
+            else prevPage();          // 右スワイプ → 前ページ
+        }
+        touchStartX.current = null;
+        touchStartY.current = null;
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl">
             {/* Header */}
@@ -81,8 +102,12 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
                 )}
             </div>
 
-            {/* Main Viewer Area */}
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+            {/* Main Viewer Area – swipe enabled */}
+            <div
+                className="relative w-full h-full flex items-center justify-center overflow-hidden"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+            >
                 {/* Navigation Arrows */}
                 <div className="absolute inset-0 flex items-center justify-between px-4 sm:px-10 z-[55] pointer-events-none">
                     <button
