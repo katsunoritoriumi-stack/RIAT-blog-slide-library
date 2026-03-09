@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# PDF files are hosted on Google Drive, not in the repository
+/public/archives/*.pdf
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

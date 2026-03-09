@@ -20,6 +20,8 @@ interface PDFViewerProps {
 }
 
 const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
+    const isGoogleDrive = url.includes("drive.google.com");
+
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [pageWidth, setPageWidth] = useState(0);
@@ -28,11 +30,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
 
     useEffect(() => {
         const updateWidth = () => {
-            // 画面幅の90%を上限850pxでPDFの表示幅に設定
             const vw = window.innerWidth;
             setPageWidth(Math.min(vw * 0.9, 850));
         };
-
         updateWidth();
         window.addEventListener("resize", updateWidth);
         return () => window.removeEventListener("resize", updateWidth);
@@ -55,8 +55,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
         }
     };
 
-    // Keyboard navigation
+    // Keyboard navigation (ローカルPDFのみ)
     useEffect(() => {
+        if (isGoogleDrive) return;
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "ArrowRight") nextPage();
             if (e.key === "ArrowLeft") prevPage();
@@ -64,9 +65,19 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [pageNumber, numPages, onClose]);
+    }, [pageNumber, numPages, onClose, isGoogleDrive]);
 
-    // Swipe navigation
+    // Escape key for Google Drive viewer
+    useEffect(() => {
+        if (!isGoogleDrive) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && onClose) onClose();
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [onClose, isGoogleDrive]);
+
+    // Swipe navigation (ローカルPDFのみ)
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartX.current = e.touches[0].clientX;
         touchStartY.current = e.touches[0].clientY;
@@ -76,10 +87,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
         if (touchStartX.current === null || touchStartY.current === null) return;
         const dx = e.changedTouches[0].clientX - touchStartX.current;
         const dy = e.changedTouches[0].clientY - touchStartY.current;
-        // 横スワイプが縦より大きく、かつ50px以上の移動のみ反応
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-            if (dx < 0) nextPage();  // 左スワイプ → 次ページ
-            else prevPage();          // 右スワイプ → 前ページ
+            if (dx < 0) nextPage();
+            else prevPage();
         }
         touchStartX.current = null;
         touchStartY.current = null;
@@ -102,79 +112,91 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
                 )}
             </div>
 
-            {/* Main Viewer Area – swipe enabled */}
-            <div
-                className="relative w-full h-full flex items-center justify-center overflow-hidden"
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-            >
-                {/* Navigation Arrows */}
-                <div className="absolute inset-0 flex items-center justify-between px-4 sm:px-10 z-[55] pointer-events-none">
-                    <button
-                        onClick={prevPage}
-                        disabled={pageNumber <= 1}
-                        className={`pointer-events-auto p-4 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 disabled:opacity-0 disabled:pointer-events-none ${pageNumber <= 1 ? "cursor-default" : "cursor-pointer"
-                            }`}
-                    >
-                        <ChevronLeft size={48} />
-                    </button>
-
-                    <button
-                        onClick={nextPage}
-                        disabled={numPages ? pageNumber >= numPages : true}
-                        className={`pointer-events-auto p-4 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 disabled:opacity-0 disabled:pointer-events-none ${numPages && pageNumber >= numPages ? "cursor-default" : "cursor-pointer"
-                            }`}
-                    >
-                        <ChevronRight size={48} />
-                    </button>
+            {/* Google Drive iframe viewer */}
+            {isGoogleDrive ? (
+                <div className="relative w-full h-full flex items-center justify-center pt-20 pb-10 px-4">
+                    <iframe
+                        src={url}
+                        className="w-full h-full max-w-4xl rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                        allow="autoplay"
+                        style={{ border: "none" }}
+                    />
                 </div>
+            ) : (
+                /* Local PDF viewer (react-pdf) */
+                <div
+                    className="relative w-full h-full flex items-center justify-center overflow-hidden"
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                >
+                    {/* Navigation Arrows */}
+                    <div className="absolute inset-0 flex items-center justify-between px-4 sm:px-10 z-[55] pointer-events-none">
+                        <button
+                            onClick={prevPage}
+                            disabled={pageNumber <= 1}
+                            className={`pointer-events-auto p-4 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 disabled:opacity-0 disabled:pointer-events-none ${pageNumber <= 1 ? "cursor-default" : "cursor-pointer"
+                                }`}
+                        >
+                            <ChevronLeft size={48} />
+                        </button>
 
-                {/* PDF Document */}
-                <div className="relative z-50 flex items-center justify-center max-w-[90vw] max-h-[85vh] overflow-auto">
-                    <Document
-                        file={url}
-                        onLoadSuccess={onDocumentLoadSuccess}
-                        loading={
-                            <div className="flex flex-col items-center gap-4">
-                                <Loader2 className="animate-spin text-white/20" size={48} />
-                                <p className="text-white/20 tracking-tighter uppercase text-xs">Loading Archive...</p>
-                            </div>
-                        }
-                        error={
-                            <div className="text-white/40 text-center">
-                                <p>Failed to load PDF.</p>
-                                <p className="text-xs mt-2">{url}</p>
-                            </div>
-                        }
-                    >
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={pageNumber}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                transition={{ duration: 0.3 }}
-                                className="shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-sm overflow-hidden"
-                            >
-                                <Page
-                                    pageNumber={pageNumber}
-                                    width={pageWidth || undefined}
-                                    renderAnnotationLayer={true}
-                                    renderTextLayer={true}
-                                />
-                            </motion.div>
-                        </AnimatePresence>
-                    </Document>
-                </div>
-            </div>
+                        <button
+                            onClick={nextPage}
+                            disabled={numPages ? pageNumber >= numPages : true}
+                            className={`pointer-events-auto p-4 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 disabled:opacity-0 disabled:pointer-events-none ${numPages && pageNumber >= numPages ? "cursor-default" : "cursor-pointer"
+                                }`}
+                        >
+                            <ChevronRight size={48} />
+                        </button>
+                    </div>
 
-            {/* Footer / Page Info */}
-            <div className="absolute bottom-10 left-0 w-full flex flex-col items-center gap-2 z-[60]">
-                <div className="text-white/30 text-[10px] tracking-[0.3em] uppercase">
-                    Page {pageNumber} of {numPages || "..."}
+                    {/* PDF Document */}
+                    <div className="relative z-50 flex items-center justify-center max-w-[90vw] max-h-[85vh] overflow-auto">
+                        <Document
+                            file={url}
+                            onLoadSuccess={onDocumentLoadSuccess}
+                            loading={
+                                <div className="flex flex-col items-center gap-4">
+                                    <Loader2 className="animate-spin text-white/20" size={48} />
+                                    <p className="text-white/20 tracking-tighter uppercase text-xs">Loading Archive...</p>
+                                </div>
+                            }
+                            error={
+                                <div className="text-white/40 text-center">
+                                    <p>Failed to load PDF.</p>
+                                    <p className="text-xs mt-2">{url}</p>
+                                </div>
+                            }
+                        >
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={pageNumber}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-sm overflow-hidden"
+                                >
+                                    <Page
+                                        pageNumber={pageNumber}
+                                        width={pageWidth || undefined}
+                                        renderAnnotationLayer={true}
+                                        renderTextLayer={true}
+                                    />
+                                </motion.div>
+                            </AnimatePresence>
+                        </Document>
+                    </div>
+
+                    {/* Footer / Page Info */}
+                    <div className="absolute bottom-10 left-0 w-full flex flex-col items-center gap-2 z-[60]">
+                        <div className="text-white/30 text-[10px] tracking-[0.3em] uppercase">
+                            Page {pageNumber} of {numPages || "..."}
+                        </div>
+                        <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                    </div>
                 </div>
-                <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            </div>
+            )}
         </div>
     );
 };
