@@ -24,6 +24,7 @@ export default function ViewerPage() {
         <PDFViewer
             url={item.url}
             title={item.title}
+            blogUrl={item.blogUrl}
             onClose={() => router.push("/")}
         />
     );

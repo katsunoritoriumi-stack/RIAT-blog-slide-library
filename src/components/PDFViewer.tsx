@@ -16,10 +16,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 interface PDFViewerProps {
     url: string;
     title: string;
+    blogUrl?: string;
     onClose?: () => void;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, blogUrl, onClose }) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [pageWidth, setPageWidth] = useState(0);
@@ -169,11 +170,22 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, onClose }) => {
             </div>
 
             {/* Footer / Page Info */}
-            <div className="absolute bottom-10 left-0 w-full flex flex-col items-center gap-2 z-[60]">
+            <div className="absolute bottom-6 left-0 w-full flex flex-col items-center gap-2 z-[60]">
                 <div className="text-white/30 text-[10px] tracking-[0.3em] uppercase">
                     Page {pageNumber} of {numPages || "..."}
                 </div>
                 <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                {blogUrl && (
+                    <a
+                        href={blogUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 flex items-center gap-2 px-4 py-2 rounded-full border border-amber-400/40 bg-black/40 backdrop-blur-sm text-amber-300/80 hover:text-amber-200 hover:border-amber-300/70 hover:bg-amber-900/20 transition-all duration-300 text-[11px] tracking-[0.2em] uppercase"
+                    >
+                        <span>ブログ記事を読む</span>
+                        <span className="text-amber-400/60">↗</span>
+                    </a>
+                )}
             </div>
         </div>
     );
